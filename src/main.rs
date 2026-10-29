@@ -52,6 +52,25 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
                 let seq = &request["seq"];
                 let case = &request["case"];
+                let tests = case["tests"].as_array().ok_or("invalid tests")?;
+
+                if let Some(output) = request["output"].as_str() {
+                    if output != "flag" {
+                        let results = tests
+                            .iter()
+                            .map(|_| {
+                                json!({
+                                    "skipped": true,
+                                    "message": format!("unsupported output format {output}"),
+                                })
+                            })
+                            .collect::<Vec<_>>();
+                        let response = json!({"seq": seq, "results": results});
+                        println!("{response}");
+                        continue;
+                    }
+                }
+
                 let mut schemas = Schemas::default();
                 let mut compiler = Compiler::default();
                 if let Some(draft) = draft {
@@ -72,7 +91,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                         continue;
                     }
                 };
-                let tests = case["tests"].as_array().ok_or("invalid tests")?;
                 let results = tests
                     .iter()
                     .map(|test| {
